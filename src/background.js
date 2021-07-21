@@ -3,6 +3,9 @@
 import { app, protocol, BrowserWindow } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
+import { PythonShell } from "python-shell";
+const path = require("path");
+const { ipcMain } = require("electron");
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 // Scheme must be registered before the app is ready
@@ -19,6 +22,7 @@ async function createWindow() {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
     },
   });
@@ -32,6 +36,15 @@ async function createWindow() {
     // Load the index.html when not in development
     win.loadURL("app://./index.html");
   }
+
+  ipcMain.on("mounted", (ev, arg) => {
+    console.log(arg);
+    PythonShell.run("./src/py/hello.py", null, (err, results) => {
+      if (err) throw err;
+      console.log("Python script finished: ", results);
+      ev.reply("python", results);
+    });
+  });
 }
 
 // Quit when all windows are closed.
